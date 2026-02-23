@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accelerating Skyline Path Enumeration with a Core Attribute Index on Multi-attribute Graphs</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Poppins:wght@600;700;800&display=swap');
+
+:root {
+  --color-primary: #1B4942;
+  --color-text: #1a1a2e;
+  --color-bg: #FFFFFF;
+  --color-bg-alt: #F8FAF4;
+  --color-accent-light: #E8F0ED;
+  --color-speedup: #2A9D8F;
+  --color-cai: #264653;
+  --font-heading: 'Poppins', sans-serif;
+  --font-body: 'Open Sans', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: #000;
+  overflow: hidden;
+}
+
+.slide {
+  width: 100vw;
+  height: 100vh;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  padding: 5vh 10vw;
+  background: var(--color-bg);
+  position: absolute;
+  top: 0; left: 0;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.slide.active {
+  display: flex;
+  opacity: 1;
+}
+
+.slide-title {
+  font-family: var(--font-heading);
+  font-size: clamp(2.4rem, 4.2vw, 3.6rem);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+}
+
+.slide-subtitle {
+  font-family: var(--font-heading);
+  font-size: clamp(1.4rem, 2.2vw, 2rem);
+  font-weight: 600;
+  color: var(--color-primary);
+  opacity: 0.9;
+  margin-bottom: 1rem;
+}
+
+.slide-body { font-size: clamp(1.25rem, 1.8vw, 1.55rem); line-height: 1.8; max-width: 90%; }
+
+ul.bullets {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+ul.bullets li {
+  font-size: clamp(1.25rem, 1.8vw, 1.55rem);
+  line-height: 1.8;
+  padding-left: 1.5rem;
+  position: relative;
+  margin-bottom: 0.6rem;
+}
+
+ul.bullets li::before {
+  content: '•';
+  color: var(--color-primary);
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+.highlight-box {
+  background: var(--color-accent-light);
+  border-left: 4px solid var(--color-primary);
+  padding: 1.2rem 1.8rem;
+  border-radius: 0 8px 8px 0;
+  margin: 1.2rem 0;
+  font-size: clamp(1.15rem, 1.6vw, 1.4rem);
+  line-height: 1.6;
+  max-width: 90%;
+}
+
+.big-number {
+  font-family: var(--font-heading);
+  font-size: clamp(2.8rem, 5vw, 4.2rem);
+  font-weight: 800;
+  color: var(--color-speedup);
+}
+
+.caption {
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  color: #666;
+  margin-top: 0.8rem;
+}
+
+/* Rubric tags */
+.rubric-tag {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 0.8rem;
+  background: var(--color-accent-light);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.rubric-tag.delivery {
+  background: #f0e6ff;
+  color: #5a2d82;
+  border-color: #5a2d82;
+}
+
+/* Transition cues */
+.transition-cue {
+  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  font-style: italic;
+  color: var(--color-primary);
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(27, 73, 66, 0.3);
+}
+
+/* Path diagram */
+.path-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+}
+
+.path-node {
+  width: clamp(60px, 8vw, 90px);
+  height: clamp(60px, 8vw, 90px);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-family: var(--font-heading);
+  font-size: clamp(0.7rem, 1vw, 0.9rem);
+  font-weight: 700;
+  text-align: center;
+  background: var(--color-cai);
+}
+
+.path-node.skyline {
+  background: var(--color-speedup);
+  box-shadow: 0 0 0 3px var(--color-primary);
+}
+
+.path-arrow { font-size: 1.5rem; color: var(--color-primary); }
+
+/* Bar chart */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(1rem, 3vw, 3rem);
+  margin: 2rem 0;
+  height: 180px;
+}
+
+.bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.bar {
+  width: clamp(50px, 8vw, 80px);
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 0.5rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: clamp(0.9rem, 1.2vw, 1.1rem);
+  color: white;
+}
+
+.bar-label {
+  margin-top: 0.5rem;
+  font-size: clamp(0.8rem, 1.05vw, 1rem);
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Stats row */
+.stats-row {
+  display: flex;
+  gap: 2rem;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  text-align: center;
+  flex: 1;
+  min-width: 120px;
+}
+
+/* Icon row */
+.icon-row {
+  display: flex;
+  gap: 2rem;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+}
+
+.icon-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  font-weight: 600;
+}
+
+.icon-item span { font-size: 2rem; margin-bottom: 0.5rem; }
+
+/* Progress bar */
+.progress-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: var(--color-primary);
+  transition: width 0.3s ease;
+  z-index: 100;
+}
+
+/* Slide counter */
+.slide-counter {
+  position: fixed;
+  bottom: 12px;
+  right: 20px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: #999;
+  z-index: 100;
+}
+
+/* Title slide */
+.slide.title-slide {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-alt) 100%);
+}
+
+.slide.title-slide .slide-title {
+  font-size: clamp(2.8rem, 5vw, 4rem);
+  margin-bottom: 0.5rem;
+}
+
+.title-bar {
+  width: 80px;
+  height: 4px;
+  background: var(--color-primary);
+  margin: 1rem auto;
+  border-radius: 2px;
+}
+
+.paper-ref {
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  color: #666;
+  margin-top: 1.5rem;
+  max-width: 80%;
+  line-height: 1.5;
+}
+
+/* Closing slide */
+.slide.closing-slide {
+  text-align: center;
+  align-items: center;
+  background: linear-gradient(135deg, var(--color-bg-alt) 0%, var(--color-bg) 100%);
+}
+
+.closing-takeaway {
+  font-family: var(--font-heading);
+  font-size: clamp(1.3rem, 2.2vw, 1.8rem);
+  font-weight: 600;
+  color: var(--color-primary);
+  max-width: 70%;
+  line-height: 1.5;
+  margin: 1.5rem 0;
+}
+</style>
+</head>
+<body>
+
+<!-- Slide 1: Title -->
+<div class="slide title-slide active" id="slide1">
+  <div class="slide-title">Accelerating Skyline Path Enumeration with a Core Attribute Index on Multi-attribute Graphs</div>
+  <div class="title-bar"></div>
+  <div class="slide-subtitle">Research Story-telling — Oral Presentation 1</div>
+  <div class="paper-ref">
+    Zeng, Y., Fang, Y., Luo, W., &amp; Ma, C. (2025). Proc. ACM Manag. Data 3(3), Article 124.
+  </div>
+</div>
+
+<!-- Slide 2: Roadmap -->
+<div class="slide" id="slide2">
+  <div class="slide-title">Outline</div>
+  <ul class="bullets">
+    <li><strong>Hook:</strong> Multi-criteria route planning — when one number isn't enough</li>
+    <li><strong>Problem &amp; gap:</strong> What is skyline path enumeration? Why do existing methods fall short?</li>
+    <li><strong>Solution:</strong> Core Attribute Index (CAI) — prune first, enumerate smart</li>
+    <li><strong>Findings:</strong> Up to 10,000× faster on 15 real-world graphs; bounded memory</li>
+    <li><strong>Significance:</strong> Navigation, logistics, recommendations — why it matters for everyday users</li>
+    <li><strong>Impact on my research:</strong> Index-based pruning, parallel construction, clear problem–gap–contribution framing</li>
+    <li><strong>Takeaway:</strong> One-line summary and Q&amp;A</li>
+  </ul>
+  <div class="transition-cue">→ Let me start with a familiar scenario…</div>
+</div>
+
+<!-- Slide 3: Hook -->
+<div class="slide" id="slide3">
+  <span class="rubric-tag content">NON-SPECIALIST</span>
+  <div class="slide-title">The Problem: Choosing Routes with Multiple Criteria</div>
+  <ul class="bullets">
+    <li><strong>Trip planning:</strong> shortest vs. cheapest vs. scenic — you often want a balance, not an extreme</li>
+    <li><strong>Navigation apps:</strong> fastest route vs. fewest tolls vs. fuel-efficient — existing tools usually pick one and ignore the rest</li>
+    <li><strong>Logistics &amp; delivery:</strong> cost, time, reliability — companies need to weigh all three</li>
+    <li><strong>This paper:</strong> fast search for paths that balance many criteria at once, so users can choose among diverse, meaningful options</li>
+  </ul>
+  <div class="highlight-box">
+    <strong>Real-world scenario:</strong> When planning a route, you care about cost, time, and scenery — not just one number. The paper tackles exactly that: how to quickly find all routes that are "best" in some sense, without being clearly worse on every dimension.
+  </div>
+  <div class="transition-cue">→ So what is skyline path enumeration?</div>
+</div>
+
+<!-- Slide 4: What Is Skyline Path Enumeration? -->
+<div class="slide" id="slide4">
+  <span class="rubric-tag content">CONTENT &amp; STRUCTURE</span>
+  <div class="slide-title">What Is Skyline Path Enumeration?</div>
+  <ul class="bullets">
+    <li><strong>Multi-attribute paths:</strong> each path has several numbers (cost, time, distance, etc.) — think of routes in a network where each link has multiple weights</li>
+    <li><strong>Skyline paths:</strong> paths where no other path is clearly better on <em>all</em> attributes — e.g., Path A is cheaper, Path B is faster; neither dominates</li>
+    <li><strong>Enumeration:</strong> list all such skyline paths so users can choose among diverse, meaningful options instead of getting a single "best" answer</li>
+  </ul>
+  <div class="path-diagram">
+    <div class="path-node">Path A<br>Cost: 5, Time: 3</div>
+    <div class="path-arrow">vs</div>
+    <div class="path-node">Path B<br>Cost: 4, Time: 4</div>
+    <div class="path-arrow">vs</div>
+    <div class="path-node skyline">Path C<br>Cost: 3, Time: 5</div>
+    <span style="font-size:clamp(1rem,1.3vw,1.15rem); margin-left:1rem;">→ Skyline: A, B, C (none dominates)</span>
+  </div>
+  <div class="highlight-box" style="font-size:clamp(1rem,1.4vw,1.25rem);">
+    <strong>Dominance:</strong> Path P dominates Path Q if P is better or equal on every attribute and strictly better on at least one. Skyline paths are those not dominated by any other.
+  </div>
+  <div class="transition-cue">→ What's the gap in existing work?</div>
+</div>
+
+<!-- Slide 5: Gap -->
+<div class="slide" id="slide5">
+  <span class="rubric-tag content">CONTENT &amp; STRUCTURE</span>
+  <div class="slide-title">The Gap</div>
+  <ul class="bullets">
+    <li><strong>Existing methods:</strong> Dijkstra, A*, etc. optimize <em>one</em> attribute (e.g., shortest path) — they cannot enumerate skyline paths</li>
+    <li><strong>Naive skyline search:</strong> enumerate all paths and filter — too slow on large graphs; exponential blowup</li>
+    <li><strong>Previous skyline work:</strong> either limited to small graphs or lacks efficient indexing — scales poorly for real-world networks</li>
+  </ul>
+  <div class="highlight-box">
+    The authors identify the gap: prior work either ignores multiple attributes or does not scale. They propose a <strong>Core Attribute Index (CAI)</strong> to prune the search space and make skyline path enumeration practical on large multi-attribute graphs.
+  </div>
+  <div class="transition-cue">→ Here's how the authors solve it…</div>
+</div>
+
+<!-- Slide 6: Solution — CAI Index -->
+<div class="slide" id="slide6">
+  <span class="rubric-tag content">KEY FINDINGS</span>
+  <div class="slide-title">Solution: Core Attribute Index (CAI)</div>
+  <ul class="bullets">
+    <li><strong>Precomputed index:</strong> CAI stores labels that identify vertices and edges that cannot appear in any skyline path — so we <strong>prune</strong> them before searching</li>
+    <li><strong>Parallel construction:</strong> Hop-dependency label propagation — labels are computed in rounds based on graph "hops"; rounds can be parallelized across vertices</li>
+    <li><strong>Query strategy:</strong> At query time, use CAI to skip pruned regions and only explore candidates that might be skyline — reduces fruitless exploration dramatically</li>
+  </ul>
+  <div class="highlight-box">
+    <strong>Key idea:</strong> Instead of exploring the whole graph, CAI tells us where skyline paths <em>cannot</em> go — so we skip those regions entirely. The index is built once; queries reuse it for fast enumeration.
+  </div>
+  <div class="transition-cue">→ How much faster is it?</div>
+</div>
+
+<!-- Slide 7: Finding — Speed -->
+<div class="slide" id="slide7">
+  <span class="rubric-tag content">KEY FINDINGS / EVIDENCE</span>
+  <div class="slide-title">Finding: Up to 10,000× Faster</div>
+  <ul class="bullets" style="margin-bottom:1rem;">
+    <li>CAI outperforms prior skyline path methods by <strong>up to four orders of magnitude</strong> (10,000×) on query time</li>
+    <li>Experiments on <strong>15 real-world graphs</strong> (road networks, social graphs, etc.) — consistent speedup across datasets</li>
+    <li><strong>Bounded memory:</strong> index size and query memory are well-controlled — scalable to large graphs</li>
+  </ul>
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="big-number">10,000×</div>
+      <p class="caption">Speedup vs. prior work</p>
+    </div>
+    <div class="stat-card">
+      <div class="big-number">15</div>
+      <p class="caption">Real-world graphs tested</p>
+    </div>
+    <div class="stat-card">
+      <div class="big-number">✓</div>
+      <p class="caption">Bounded memory; scalable</p>
+    </div>
+  </div>
+  <div class="bar-chart">
+    <div class="bar-group">
+      <div class="bar" style="height:20px; background:#ccc;">1×</div>
+      <div class="bar-label">Prior work</div>
+    </div>
+    <div class="bar-group">
+      <div class="bar" style="height:180px; background:var(--color-speedup);">10,000×</div>
+      <div class="bar-label" style="color:var(--color-primary); font-weight:700;">CAI</div>
+    </div>
+  </div>
+  <div class="transition-cue">→ Why does this matter?</div>
+</div>
+
+<!-- Slide 8: Significance -->
+<div class="slide" id="slide8">
+  <span class="rubric-tag content">SIGNIFICANCE</span>
+  <div class="slide-title">Why Does This Matter?</div>
+  <ul class="bullets">
+    <li><strong>Navigation &amp; route planning:</strong> Users want routes that balance time, cost, and fuel — not just the shortest or fastest; CAI enables real-time multi-criteria search on large road networks</li>
+    <li><strong>Logistics &amp; supply chain:</strong> Delivery planning with cost, reliability, and carbon footprint — diverse skyline options help managers make informed trade-offs</li>
+    <li><strong>Recommendation systems:</strong> Products, routes, or services with multiple attributes (price, quality, popularity) — skyline enumeration finds non-dominated options for users to choose from</li>
+  </ul>
+  <div class="highlight-box">
+    <strong>Broader impact:</strong> The paper bridges path enumeration and multi-attribute (skyline) queries. Systems can now offer diverse, explainable route choices instead of a single "best" path.
+  </div>
+  <div class="transition-cue">→ How does this impact my research?</div>
+</div>
+
+<!-- Slide 9: Impact on My Research -->
+<div class="slide" id="slide9">
+  <span class="rubric-tag content">WRITING SKILLS / EVIDENCE</span>
+  <div class="slide-title">Impact on My Research</div>
+  <ul class="bullets">
+    <li><strong>Technical:</strong> Index-based pruning for multi-criteria queries — I can adopt CAI-style pruning in other graph problems where many solutions are dominated</li>
+    <li><strong>Scalability:</strong> Parallel construction via hop-dependency propagation — a general pattern for building indices on large graphs</li>
+    <li><strong>Writing:</strong> Clear problem–gap–contribution framing; concrete examples (road networks with cost and distance); explicit technical contributions and strong empirical validation (15 datasets, four orders of magnitude speedup)</li>
+  </ul>
+  <div class="highlight-box">
+    <strong>Evidence from the article:</strong> The paper states that CAI "outperforms the state-of-the-art by up to four orders of magnitude" — this kind of precise, quantitative claim, backed by experiments on 15 real-world graphs, is a model for how to present findings convincingly.
+  </div>
+  <div class="transition-cue">→ To sum up…</div>
+</div>
+
+<!-- Slide 10: Takeaway -->
+<div class="slide" id="slide10">
+  <div class="slide-title">Takeaway</div>
+  <ul class="bullets">
+    <li><strong>Problem:</strong> Multi-criteria path search — users want routes that balance cost, time, and other attributes</li>
+    <li><strong>Solution:</strong> Core Attribute Index (CAI) — prune vertices/edges not in any skyline path, then enumerate only candidates</li>
+    <li><strong>Results:</strong> Up to 10,000× faster than prior work; 15 real-world graphs; bounded memory and good scalability</li>
+  </ul>
+  <div class="closing-takeaway">
+    CAI accelerates skyline path enumeration — large speedup, scalability, and bounded memory.
+  </div>
+  <div class="highlight-box" style="max-width:70%; margin:1rem auto;">
+    One-line summary: <strong>Prune first, enumerate smart.</strong>
+  </div>
+  <div class="transition-cue">→ Thank you for listening.</div>
+</div>
+
+<!-- Slide 11: Thank You & Q&A -->
+<div class="slide closing-slide" id="slide11">
+  <div class="slide-title">Thank You</div>
+  <div class="title-bar"></div>
+  <p style="font-family:var(--font-heading); font-size:clamp(1.5rem,2.5vw,2rem); color:var(--color-primary); margin:1.5rem 0; font-weight:700;">
+    Questions?
+  </p>
+  <div class="paper-ref">
+    Zeng, Y., Fang, Y., Luo, W., &amp; Ma, C. (2025). Proc. ACM Manag. Data 3(3), Article 124.
+  </div>
+</div>
+
+<!-- Progress bar -->
+<div class="progress-bar" id="progressBar"></div>
+<div class="slide-counter" id="slideCounter"></div>
+
+<script>
+let current = 0;
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+const progressBar = document.getElementById('progressBar');
+const slideCounter = document.getElementById('slideCounter');
+
+function showSlide(n) {
+  if (n < 0 || n >= total) return;
+  slides[current].classList.remove('active');
+  current = n;
+  slides[current].classList.add('active');
+  progressBar.style.width = ((current + 1) / total * 100) + '%';
+  slideCounter.textContent = (current + 1) + ' / ' + total;
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); showSlide(current + 1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); showSlide(current - 1); }
+  if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+  if (e.key === 'End') { e.preventDefault(); showSlide(total - 1); }
+});
+
+document.addEventListener('click', (e) => {
+  if (e.clientX > window.innerWidth * 0.6) showSlide(current + 1);
+  else showSlide(current - 1);
+});
+
+showSlide(0);
+</script>
+
+</body>
+</html>
